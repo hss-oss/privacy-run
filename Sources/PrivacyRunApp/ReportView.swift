@@ -51,7 +51,7 @@ struct ReportView: View {
                 }
 
                 Label(
-                    "结果来自隔离 Helper，用于验证启动环境，不代表目标 App 内部一定采用相同值。系统字体为只读检测，IP 查询结果可能存在误差。",
+                    "结果来自隔离 Helper，用于验证启动环境，不代表目标 App 内部一定采用相同值。IP 查询结果可能存在误差。",
                     systemImage: "info.circle"
                 )
                 .font(.caption)

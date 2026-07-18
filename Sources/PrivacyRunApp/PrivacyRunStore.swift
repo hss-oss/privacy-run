@@ -203,12 +203,19 @@ final class PrivacyRunStore: ObservableObject {
     private func load() {
         guard
             let data = UserDefaults.standard.data(forKey: persistenceKey),
-            let decoded = try? JSONDecoder().decode([AppRecord].self, from: data)
+            var decoded = try? JSONDecoder().decode([AppRecord].self, from: data)
         else {
             return
         }
+        for index in decoded.indices
+        where decoded[index].latestReport?.checks.contains(
+            where: { $0.name == "系统默认字体" }
+        ) == true {
+            decoded[index].latestReport = nil
+        }
         applications = decoded
         selectedApplicationID = decoded.first?.id
+        save()
     }
 
     private func save() {

@@ -1,12 +1,10 @@
-import AppKit
 import Foundation
 import PrivacyRunCore
 
 let report = ProbeReport(
     timeZoneIdentifier: TimeZone.current.identifier,
     localeIdentifier: Locale.current.identifier,
-    preferredLanguages: Locale.preferredLanguages,
-    systemFontName: NSFont.systemFont(ofSize: NSFont.systemFontSize).fontName
+    preferredLanguages: Locale.preferredLanguages
 )
 
 do {

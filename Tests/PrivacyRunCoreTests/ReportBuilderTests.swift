@@ -11,8 +11,7 @@ struct ReportBuilderTests {
     private let probe = ProbeReport(
         timeZoneIdentifier: "Asia/Tokyo",
         localeIdentifier: "en_US",
-        preferredLanguages: ["en-US"],
-        systemFontName: ".AppleSystemUIFont"
+        preferredLanguages: ["en-US"]
     )
 
     @Test
@@ -26,7 +25,7 @@ struct ReportBuilderTests {
         )
 
         #expect(report.processIdentifier == 42)
-        #expect(report.checks.count == 6)
+        #expect(report.checks.count == 5)
         #expect(
             report.checks.first { $0.name == "时区与 IP 是否一致" }?.result
                 == .passed
@@ -52,9 +51,6 @@ struct ReportBuilderTests {
         #expect(
             report.checks.first { $0.name == "地区格式" }?.result == .unavailable
         )
-        #expect(
-            report.checks.first { $0.name == "系统默认字体" }?.result == .unavailable
-        )
     }
 
     @Test
@@ -62,8 +58,7 @@ struct ReportBuilderTests {
         let seoulProbe = ProbeReport(
             timeZoneIdentifier: "Asia/Seoul",
             localeIdentifier: "en_US",
-            preferredLanguages: ["en-US"],
-            systemFontName: ".AppleSystemUIFont"
+            preferredLanguages: ["en-US"]
         )
 
         let report = ReportBuilder().build(
@@ -126,8 +121,7 @@ struct ReportBuilderTests {
         let bundledProbe = ProbeReport(
             timeZoneIdentifier: "Asia/Tokyo",
             localeIdentifier: "zh-Hans_JP",
-            preferredLanguages: ["ja-JP"],
-            systemFontName: ".AppleSystemUIFont"
+            preferredLanguages: ["ja-JP"]
         )
 
         let report = ReportBuilder().build(

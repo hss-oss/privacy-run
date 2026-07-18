@@ -80,13 +80,6 @@ public struct ReportBuilder: Sendable {
                 resultLabel: localeOutcome.1
             ),
             ReportCheck(
-                name: "系统默认字体",
-                expected: "仅供参考",
-                actual: probe?.systemFontName ?? "无法获取",
-                result: probe == nil ? .unavailable : .information,
-                resultLabel: probe == nil ? "无法获取" : "系统值"
-            ),
-            ReportCheck(
                 name: "公网 IP 属地",
                 expected: "仅供参考",
                 actual: ipDisplay,
