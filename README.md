@@ -78,4 +78,4 @@ assets/                      图标和文档图片
 
 ## License
 
-尚未指定。
+本项目基于 [MIT License](LICENSE) 开源。
