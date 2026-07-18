@@ -87,7 +87,11 @@ final class PrivacyRunStore: ObservableObject {
         else {
             return
         }
+        guard applications[index].configuration != configuration else {
+            return
+        }
         applications[index].configuration = configuration
+        applications[index].latestReport = nil
         save()
     }
 
