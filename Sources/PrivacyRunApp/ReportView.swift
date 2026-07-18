@@ -9,7 +9,7 @@ struct ReportView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("运行报告")
+                        Text("启动环境预检")
                             .font(.title3.weight(.medium))
                         Text(report.createdAt.formatted(date: .abbreviated, time: .standard))
                             .font(.caption)
@@ -51,7 +51,7 @@ struct ReportView: View {
                 }
 
                 Label(
-                    "系统字体为只读检测。时区与 IP 按国家或地区比较，IP 查询结果可能存在误差。",
+                    "结果来自隔离 Helper，用于验证启动环境，不代表目标 App 内部一定采用相同值。系统字体为只读检测，IP 查询结果可能存在误差。",
                     systemImage: "info.circle"
                 )
                 .font(.caption)
@@ -67,9 +67,9 @@ struct ReportView: View {
             .padding(24)
         } else {
             ContentUnavailableView {
-                Label("尚无运行报告", systemImage: "doc.text.magnifyingglass")
+                Label("尚无预检报告", systemImage: "doc.text.magnifyingglass")
             } description: {
-                Text("启动 App 后会自动生成验证结果。")
+                Text("启动 App 后会自动生成环境预检结果。")
             }
         }
     }

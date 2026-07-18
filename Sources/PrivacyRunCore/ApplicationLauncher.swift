@@ -1,9 +1,29 @@
+import AppKit
 import Foundation
 
 public struct PreparedLaunch: Sendable {
     public let environment: [String: String]
     public let applicationArguments: [String]
     public let probeArguments: [String]
+}
+
+public enum ApplicationLaunchError: LocalizedError {
+    case alreadyRunning(String)
+    case unsupportedLanguageOverride
+    case exitedEarly(Int32, String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .alreadyRunning(let name):
+            "请先彻底退出 \(name)，再通过 PrivacyRun 启动。"
+        case .unsupportedLanguageOverride:
+            "该 App 的 Runtime 暂不支持安全的语言覆盖。"
+        case .exitedEarly(let status, let message):
+            message.isEmpty
+                ? "App 启动后立即退出（状态码 \(status)）。"
+                : "App 启动后立即退出（状态码 \(status)）：\(message)"
+        }
+    }
 }
 
 public struct ApplicationLauncher: Sendable {
@@ -25,10 +45,14 @@ public struct ApplicationLauncher: Sendable {
             configuration: configuration,
             temporaryDirectory: temporaryDirectory
         )
+        let runtime = ApplicationRuntimeDetector().detect(application)
+        if runtime == .unsupported, configuration.languageIdentifier != nil {
+            throw ApplicationLaunchError.unsupportedLanguageOverride
+        }
         let argumentBuilder = LaunchArgumentsBuilder()
         let applicationArguments = argumentBuilder.build(
             configuration: configuration,
-            style: isElectron(application) ? .electron : .apple
+            style: runtime == .electron ? .electron : .apple
         )
         let probeArguments = argumentBuilder.build(configuration: configuration)
 
@@ -43,26 +67,42 @@ public struct ApplicationLauncher: Sendable {
         application: ResolvedApplication,
         prepared: PreparedLaunch
     ) throws -> Int32 {
+        guard NSRunningApplication.runningApplications(
+            withBundleIdentifier: application.bundleIdentifier
+        ).isEmpty else {
+            throw ApplicationLaunchError.alreadyRunning(application.name)
+        }
+
+        let errorLogURL = URL(
+            fileURLWithPath: prepared.environment["TMPDIR"] ?? NSTemporaryDirectory()
+        ).appending(path: "launch-\(UUID().uuidString).log")
+        FileManager.default.createFile(atPath: errorLogURL.path, contents: nil)
+        let errorLog = try FileHandle(forWritingTo: errorLogURL)
+        defer {
+            try? errorLog.close()
+            try? FileManager.default.removeItem(at: errorLogURL)
+        }
+
         let process = Process()
         process.executableURL = application.executableURL
         process.environment = prepared.environment
         process.arguments = prepared.applicationArguments
         process.standardInput = FileHandle.nullDevice
         process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
+        process.standardError = errorLog
 
         try process.run()
-        return process.processIdentifier
-    }
-
-    private func isElectron(_ application: ResolvedApplication) -> Bool {
-        if Bundle(url: application.bundleURL)?
-            .object(forInfoDictionaryKey: "ElectronAsarIntegrity") != nil
-        {
-            return true
+        Thread.sleep(forTimeInterval: 0.75)
+        guard process.isRunning else {
+            try? errorLog.synchronize()
+            let data = (try? Data(contentsOf: errorLogURL)) ?? Data()
+            let message = String(data: data.prefix(4_096), encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            throw ApplicationLaunchError.exitedEarly(
+                process.terminationStatus,
+                message
+            )
         }
-        let frameworkURL = application.bundleURL
-            .appending(path: "Contents/Frameworks/Electron Framework.framework")
-        return FileManager.default.fileExists(atPath: frameworkURL.path)
+        return process.processIdentifier
     }
 }
