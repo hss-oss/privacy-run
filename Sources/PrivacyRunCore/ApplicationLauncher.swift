@@ -56,6 +56,11 @@ public struct ApplicationLauncher: Sendable {
     }
 
     private func isElectron(_ application: ResolvedApplication) -> Bool {
+        if Bundle(url: application.bundleURL)?
+            .object(forInfoDictionaryKey: "ElectronAsarIntegrity") != nil
+        {
+            return true
+        }
         let frameworkURL = application.bundleURL
             .appending(path: "Contents/Frameworks/Electron Framework.framework")
         return FileManager.default.fileExists(atPath: frameworkURL.path)
