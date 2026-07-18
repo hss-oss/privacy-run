@@ -3,6 +3,7 @@ import Foundation
 public enum LaunchArgumentStyle: Sendable {
     case apple
     case electron
+    case environmentOnly
 }
 
 public struct LaunchArgumentsBuilder: Sendable {
@@ -29,6 +30,8 @@ public struct LaunchArgumentsBuilder: Sendable {
             if let languageIdentifier = normalized(configuration.languageIdentifier) {
                 arguments.append("--lang=\(languageIdentifier)")
             }
+        case .environmentOnly:
+            break
         }
 
         return arguments

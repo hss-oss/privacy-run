@@ -10,7 +10,7 @@ public struct PreparedLaunch: Sendable {
 public enum ApplicationLaunchError: LocalizedError {
     case alreadyRunning(String)
     case unsupportedLanguageOverride
-    case exitedEarly(Int32, String)
+    case exitedEarly(Int32)
 
     public var errorDescription: String? {
         switch self {
@@ -18,10 +18,8 @@ public enum ApplicationLaunchError: LocalizedError {
             "请先彻底退出 \(name)，再通过 PrivacyRun 启动。"
         case .unsupportedLanguageOverride:
             "该 App 的 Runtime 暂不支持安全的语言覆盖。"
-        case .exitedEarly(let status, let message):
-            message.isEmpty
-                ? "App 启动后立即退出（状态码 \(status)）。"
-                : "App 启动后立即退出（状态码 \(status)）：\(message)"
+        case .exitedEarly(let status):
+            "App 启动后立即退出（状态码 \(status)）。"
         }
     }
 }
@@ -46,13 +44,23 @@ public struct ApplicationLauncher: Sendable {
             temporaryDirectory: temporaryDirectory
         )
         let runtime = ApplicationRuntimeDetector().detect(application)
-        if runtime == .unsupported, configuration.languageIdentifier != nil {
+        if [.unsupported, .unknown].contains(runtime),
+            configuration.languageIdentifier != nil
+        {
             throw ApplicationLaunchError.unsupportedLanguageOverride
         }
         let argumentBuilder = LaunchArgumentsBuilder()
+        let argumentStyle: LaunchArgumentStyle = switch runtime {
+        case .native:
+            .apple
+        case .electron:
+            .electron
+        case .unsupported, .unknown:
+            .environmentOnly
+        }
         let applicationArguments = argumentBuilder.build(
             configuration: configuration,
-            style: runtime == .electron ? .electron : .apple
+            style: argumentStyle
         )
         let probeArguments = argumentBuilder.build(configuration: configuration)
 
@@ -73,35 +81,23 @@ public struct ApplicationLauncher: Sendable {
             throw ApplicationLaunchError.alreadyRunning(application.name)
         }
 
-        let errorLogURL = URL(
-            fileURLWithPath: prepared.environment["TMPDIR"] ?? NSTemporaryDirectory()
-        ).appending(path: "launch-\(UUID().uuidString).log")
-        FileManager.default.createFile(atPath: errorLogURL.path, contents: nil)
-        let errorLog = try FileHandle(forWritingTo: errorLogURL)
-        defer {
-            try? errorLog.close()
-            try? FileManager.default.removeItem(at: errorLogURL)
-        }
-
         let process = Process()
         process.executableURL = application.executableURL
         process.environment = prepared.environment
         process.arguments = prepared.applicationArguments
         process.standardInput = FileHandle.nullDevice
         process.standardOutput = FileHandle.nullDevice
-        process.standardError = errorLog
+        process.standardError = FileHandle.nullDevice
 
         try process.run()
         Thread.sleep(forTimeInterval: 0.75)
         guard process.isRunning else {
-            try? errorLog.synchronize()
-            let data = (try? Data(contentsOf: errorLogURL)) ?? Data()
-            let message = String(data: data.prefix(4_096), encoding: .utf8)?
-                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            throw ApplicationLaunchError.exitedEarly(
-                process.terminationStatus,
-                message
-            )
+            if let running = NSRunningApplication.runningApplications(
+                withBundleIdentifier: application.bundleIdentifier
+            ).first {
+                return running.processIdentifier
+            }
+            throw ApplicationLaunchError.exitedEarly(process.terminationStatus)
         }
         return process.processIdentifier
     }

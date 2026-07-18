@@ -32,9 +32,8 @@ struct ApplicationLauncherTests {
                 prepared: prepared
             )
             Issue.record("立即退出的目标进程不应被标记为启动成功")
-        } catch ApplicationLaunchError.exitedEarly(let status, let message) {
+        } catch ApplicationLaunchError.exitedEarly(let status) {
             #expect(status == 7)
-            #expect(message.contains("startup-failed"))
         }
     }
 }

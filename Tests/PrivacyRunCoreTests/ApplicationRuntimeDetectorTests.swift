@@ -28,7 +28,27 @@ struct ApplicationRuntimeDetectorTests {
         let application = try makeApplication()
         defer { try? FileManager.default.removeItem(at: application.bundleURL) }
 
-        #expect(ApplicationRuntimeDetector().detect(application) == .native)
+        let runtime = ApplicationRuntimeDetector().detect(
+            application,
+            linkedLibraries: [
+                "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
+            ]
+        )
+
+        #expect(runtime == .native)
+    }
+
+    @Test
+    func leavesUnrecognizedRuntimeUnknown() throws {
+        let application = try makeApplication()
+        defer { try? FileManager.default.removeItem(at: application.bundleURL) }
+
+        let runtime = ApplicationRuntimeDetector().detect(
+            application,
+            linkedLibraries: ["/usr/lib/libSystem.B.dylib"]
+        )
+
+        #expect(runtime == .unknown)
     }
 
     private func makeApplication(
