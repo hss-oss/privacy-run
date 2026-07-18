@@ -36,12 +36,14 @@ public struct ReportBuilder: Sendable {
             }
         )
 
-        let expectedLocale = configuration.localeIdentifier ?? "跟随系统"
-        let actualLocale = probe?.localeIdentifier ?? "无法获取"
+        let expectedLocale = configuration.localeIdentifier
+            .flatMap(regionIdentifier) ?? "跟随系统"
+        let actualLocale = probe
+            .flatMap { regionIdentifier($0.localeIdentifier) } ?? "无法获取"
         let localeOutcome = outcome(
             probe.map {
                 configuration.localeIdentifier == nil
-                || normalizedLocale($0.localeIdentifier) == normalizedLocale(expectedLocale)
+                || regionIdentifier($0.localeIdentifier) == expectedLocale
             }
         )
 
@@ -126,12 +128,12 @@ public struct ReportBuilder: Sendable {
         return matches ? (.passed, "通过") : (.warning, "不一致")
     }
 
-    private func normalizedLocale(_ value: String) -> String {
-        value
+    private func regionIdentifier(_ value: String) -> String? {
+        let identifier = value
             .replacingOccurrences(of: "-", with: "_")
             .components(separatedBy: ".")
-            .first?
-            .lowercased()
-            ?? value.lowercased()
+            .first
+            ?? value
+        return Locale(identifier: identifier).region?.identifier
     }
 }

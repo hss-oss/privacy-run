@@ -116,4 +116,31 @@ struct ReportBuilderTests {
             report.checks.first { $0.name == "语言" }?.result == .passed
         )
     }
+
+    @Test
+    func localeCheckComparesRegionIndependentlyFromHostLanguage() {
+        let japaneseConfiguration = EnvironmentConfiguration(
+            languageIdentifier: "ja-JP",
+            localeIdentifier: "ja_JP"
+        )
+        let bundledProbe = ProbeReport(
+            timeZoneIdentifier: "Asia/Tokyo",
+            localeIdentifier: "zh-Hans_JP",
+            preferredLanguages: ["ja-JP"],
+            systemFontName: ".AppleSystemUIFont"
+        )
+
+        let report = ReportBuilder().build(
+            configuration: japaneseConfiguration,
+            probe: bundledProbe,
+            ipCountryCode: nil,
+            consistency: .unavailable,
+            processIdentifier: 42
+        )
+        let localeCheck = report.checks.first { $0.name == "地区格式" }
+
+        #expect(localeCheck?.expected == "JP")
+        #expect(localeCheck?.actual == "JP")
+        #expect(localeCheck?.result == .passed)
+    }
 }
