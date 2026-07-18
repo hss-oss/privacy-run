@@ -2,19 +2,20 @@ import Foundation
 
 public struct PreparedLaunch: Sendable {
     public let environment: [String: String]
-    public let arguments: [String]
+    public let applicationArguments: [String]
+    public let probeArguments: [String]
 }
 
 public struct ApplicationLauncher: Sendable {
     public init() {}
 
     public func prepare(
-        bundleIdentifier: String,
+        application: ResolvedApplication,
         configuration: EnvironmentConfiguration,
         temporaryRoot: URL
     ) throws -> PreparedLaunch {
         let temporaryDirectory = temporaryRoot
-            .appending(path: bundleIdentifier, directoryHint: .isDirectory)
+            .appending(path: application.bundleIdentifier, directoryHint: .isDirectory)
         try FileManager.default.createDirectory(
             at: temporaryDirectory,
             withIntermediateDirectories: true
@@ -24,11 +25,17 @@ public struct ApplicationLauncher: Sendable {
             configuration: configuration,
             temporaryDirectory: temporaryDirectory
         )
-        let arguments = LaunchArgumentsBuilder().build(configuration: configuration)
+        let argumentBuilder = LaunchArgumentsBuilder()
+        let applicationArguments = argumentBuilder.build(
+            configuration: configuration,
+            style: isElectron(application) ? .electron : .apple
+        )
+        let probeArguments = argumentBuilder.build(configuration: configuration)
 
         return PreparedLaunch(
             environment: environment,
-            arguments: arguments
+            applicationArguments: applicationArguments,
+            probeArguments: probeArguments
         )
     }
 
@@ -39,12 +46,18 @@ public struct ApplicationLauncher: Sendable {
         let process = Process()
         process.executableURL = application.executableURL
         process.environment = prepared.environment
-        process.arguments = prepared.arguments
+        process.arguments = prepared.applicationArguments
         process.standardInput = FileHandle.nullDevice
         process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice
 
         try process.run()
         return process.processIdentifier
+    }
+
+    private func isElectron(_ application: ResolvedApplication) -> Bool {
+        let frameworkURL = application.bundleURL
+            .appending(path: "Contents/Frameworks/Electron Framework.framework")
+        return FileManager.default.fileExists(atPath: frameworkURL.path)
     }
 }

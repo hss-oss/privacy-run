@@ -115,7 +115,7 @@ final class PrivacyRunStore: ObservableObject {
                 let resolved = try AppBundleResolver().resolve(bundleURL)
                 let prepared = try await Task.detached {
                     try ApplicationLauncher().prepare(
-                        bundleIdentifier: resolved.bundleIdentifier,
+                        application: resolved,
                         configuration: configuration,
                         temporaryRoot: temporaryRoot
                     )
@@ -128,7 +128,7 @@ final class PrivacyRunStore: ObservableObject {
                     return try ProbeRunner().run(
                         executableURL: probeURL,
                         environment: prepared.environment,
-                        arguments: prepared.arguments
+                        arguments: prepared.probeArguments
                     )
                 }.value
 

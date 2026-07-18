@@ -32,4 +32,20 @@ struct LaunchArgumentsBuilderTests {
 
         #expect(result == ["--existing"])
     }
+
+    @Test
+    func usesChromiumLanguageArgumentForElectron() {
+        let configuration = EnvironmentConfiguration(
+            languageIdentifier: "ja-JP",
+            localeIdentifier: "ja_JP"
+        )
+
+        let result = LaunchArgumentsBuilder().build(
+            configuration: configuration,
+            style: .electron,
+            base: ["--existing"]
+        )
+
+        #expect(result == ["--existing", "--lang=ja-JP"])
+    }
 }
